@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Пошук дублів</title>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --bg-soft: #ffffff;
+    --card: #ffffff;
+    --border: #e2e6f0;
+    --text: #1c2333;
+    --text-muted: #626b82;
+    --accent: #3355ee;
+    --accent-soft: #eaefff;
+    --accent-2: #6a5bff;
+    --ok: #1f9d55;
+    --ok-soft: #e7f8ee;
+    --warn: #b5750a;
+    --warn-soft: #fff4e0;
+    --error: #d13438;
+    --error-soft: #fdeceb;
+    --shadow: 0 1px 2px rgba(20, 25, 45, 0.04), 0 8px 24px rgba(20, 25, 45, 0.06);
+    --radius: 16px;
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #10131c;
+    --bg-soft: #161a26;
+    --card: #1a1f2e;
+    --border: #2a3040;
+    --text: #eef0f6;
+    --text-muted: #9aa3ba;
+    --accent: #7c8fff;
+    --accent-soft: #232a48;
+    --accent-2: #9a8bff;
+    --ok: #4ade80;
+    --ok-soft: #163726;
+    --warn: #f5b849;
+    --warn-soft: #3a2e10;
+    --error: #ff6b6e;
+    --error-soft: #3a1e1f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 12px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10131c;
+      --bg-soft: #161a26;
+      --card: #1a1f2e;
+      --border: #2a3040;
+      --text: #eef0f6;
+      --text-muted: #9aa3ba;
+      --accent: #7c8fff;
+      --accent-soft: #232a48;
+      --accent-2: #9a8bff;
+      --ok: #4ade80;
+      --ok-soft: #163726;
+      --warn: #f5b849;
+      --warn-soft: #3a2e10;
+      --error: #ff6b6e;
+      --error-soft: #3a1e1f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  header.top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .title-block h1 {
+    font-size: 30px;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .title-block p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 15px;
+    max-width: 520px;
+  }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 8px;
+    box-shadow: var(--shadow);
+    flex-shrink: 0;
+  }
+
+  .theme-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .theme-toggle button.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card h2 {
+    font-size: 15px;
+    margin: 0 0 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+  }
+
+  .step {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .step .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .step p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+
+  details.logic summary {
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+    list-style: none;
+  }
+
+  details.logic summary::-webkit-details-marker { display: none; }
+  details.logic summary::before {
+    content: "▸ ";
+  }
+  details.logic[open] summary::before {
+    content: "▾ ";
+  }
+
+  details.logic ul {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+
+  details.logic li { margin-bottom: 8px; }
+  details.logic code {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 12.5px;
+  }
+
+  details.logic p.lead {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    margin: 12px 0 10px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chips li {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 46px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    background: var(--bg-soft);
+  }
+
+  .dropzone.drag {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .dropzone .icon {
+    font-size: 34px;
+    margin-bottom: 10px;
+  }
+
+  .dropzone .main {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .dropzone .sub {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  input[type="file"] { display: none; }
+
+  .filebar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-top: 14px;
+    font-size: 13.5px;
+  }
+
+  .filebar .fname {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .filebar button.reset {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    text-decoration: underline;
+  }
+
+  .status {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .banner {
+    display: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    margin-top: 14px;
+  }
+
+  .banner.warn {
+    background: var(--warn-soft);
+    color: var(--warn);
+    border: 1px solid var(--warn);
+  }
+
+  .banner.error {
+    background: var(--error-soft);
+    color: var(--error);
+    border: 1px solid var(--error);
+  }
+
+  .results { display: none; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 6px;
+  }
+
+  .stat {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+
+  .stat .label {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .stat .value {
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .stat .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .stat.skipped {
+    opacity: 0.6;
+  }
+
+  .stat.skipped .value {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .download-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  button.primary {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 13px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+
+  button.primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .filename-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    margin-top: 30px;
+  }
+
+  footer a {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    .steps { grid-template-columns: 1fr 1fr; }
+    header.top { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="title-block">
+      <h1>Пошук дублів</h1>
+      <p>Знаходить дублікати товарів у вивантаженому xlsx-файлі за 5 критеріями і формує звіт окремими листами.</p>
+    </div>
+    <div class="theme-toggle" role="group" aria-label="Тема оформлення">
+      <button id="btnLight" type="button" title="Світла тема">☀</button>
+      <button id="btnDark" type="button" title="Темна тема">☾</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>Як користуватись</h2>
+    <div class="steps">
+      <div class="step"><span class="num">1</span><p>Зробіть у ADH імпорт еталонних товарів і експортуйте їх у xlsx (перелік потрібних полів — нижче)</p></div>
+      <div class="step"><span class="num">2</span><p>Завантажте або перетягніть отриманий xlsx-файл у цей інструмент</p></div>
+      <div class="step"><span class="num">3</span><p>Дочекайтесь обробки — усе відбувається у вашому браузері</p></div>
+      <div class="step"><span class="num">4</span><p>Перегляньте зведення по кожному з критеріїв</p></div>
+      <div class="step"><span class="num">5</span><p>Натисніть «Скачати звіт» і отримайте xlsx з дублями</p></div>
+    </div>
+
+    <details class="logic" open style="margin-top:18px;">
+      <summary>Перелік полів для експорту з ADH (крок 1)</summary>
+      <p class="lead">Спочатку зробіть у ADH імпорт еталонних товарів, а потім експортуйте їх у xlsx з такими полями — саме цей файл потрібно завантажувати в інструмент нижче:</p>
+      <ul class="chips">
+        <li>Штрих-код</li>
+        <li>Коди Моріон</li>
+        <li>Коди Оптима</li>
+        <li>Коди БАДМ</li>
+        <li>Інструкція</li>
+        <li>Категорія</li>
+        <li>Код АТХ</li>
+        <li>МНН</li>
+        <li>Країна</li>
+        <li>Виробник</li>
+        <li>Бренд</li>
+        <li>Серія</li>
+        <li>Форма випуску</li>
+        <li>Первинна упаковка</li>
+        <li>В упаковці</li>
+        <li>В блістері</li>
+        <li>Кількість в упаковці</li>
+        <li>Назва товару</li>
+        <li>Повна назва товару</li>
+        <li>Назва товару DWH</li>
+        <li>Дозування</li>
+      </ul>
+    </details>
+
+    <details class="logic" style="margin-top:10px;">
+      <summary>Як саме шукаються дублі</summary>
+      <ul>
+        <li>Перевіряється 5 критеріїв: <code>Назва товару DWH</code>, <code>Штрих-код</code>, <code>Коди Морион</code>, <code>Коди Оптима</code>, <code>Коди БАДМ</code>.</li>
+        <li>Для назви товару DWH — товари вважаються дублями, якщо назва повністю збігається (без урахування зайвих пробілів і регістру літер).</li>
+        <li>Для кодів (штрих-код, Морион, Оптима, БАДМ) — товари вважаються дублями, якщо у списку кодів через кому є хоча б один спільний код. Товари, пов'язані ланцюжком спільних кодів (A↔B, B↔C), потрапляють в одну групу разом.</li>
+        <li>Товари з порожнім значенням поля між собою за цим полем не порівнюються.</li>
+        <li>Колонки шукаються за назвою, а не за позицією — порядок стовпців у файлі не важливий. Читається завжди перший лист файлу.</li>
+        <li>Якщо потрібної для критерію колонки немає у файлі — цей критерій пропускається, про це буде видно попередження, решта критеріїв все одно рахуються.</li>
+        <li>Файл нікуди не надсилається — вся обробка відбувається локально, у вашому браузері.</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Файл з товарами</h2>
+
+    <div class="dropzone" id="dropzone">
+      <div class="icon">📄</div>
+      <div class="main">Перетягніть xlsx-файл сюди або натисніть, щоб обрати</div>
+      <div class="sub">Приймається файл формату .xlsx</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx">
+
+    <div class="filebar" id="filebar">
+      <span class="fname" id="fname"></span>
+      <button class="reset" id="btnReset" type="button">обрати інший файл</button>
+    </div>
+
+    <div class="status" id="status">
+      <div class="spinner"></div>
+      <span id="statusText">Обробка файлу…</span>
+    </div>
+
+    <div class="banner warn" id="warnBanner"></div>
+    <div class="banner error" id="errorBanner"></div>
+  </div>
+
+  <div class="card results" id="resultsCard">
+    <h2>Зведення по критеріях</h2>
+    <div class="grid" id="statsGrid"></div>
+
+    <div class="download-bar">
+      <button class="primary" id="btnDownload">Скачати звіт</button>
+      <span class="filename-hint" id="filenameHint"></span>
+    </div>
+  </div>
+
+  <footer>Якщо виникнуть проблеми або є пропозиції — пишіть в Telegram: <a href="https://t.me/Glonee">@Glonee</a></footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- theme ----------
+  var root = document.documentElement;
+  var btnLight = document.getElementById("btnLight");
+  var btnDark = document.getElementById("btnDark");
+  var currentTheme = null; // null = system
+
+  function applyTheme(t) {
+    currentTheme = t;
+    if (t === "light") {
+      root.setAttribute("data-theme", "light");
+    } else if (t === "dark") {
+      root.setAttribute("data-theme", "dark");
+    } else {
+      root.removeAttribute("data-theme");
+    }
+    btnLight.classList.toggle("active", t === "light");
+    btnDark.classList.toggle("active", t === "dark");
+  }
+
+  btnLight.addEventListener("click", function () {
+    applyTheme(currentTheme === "light" ? null : "light");
+  });
+  btnDark.addEventListener("click", function () {
+    applyTheme(currentTheme === "dark" ? null : "dark");
+  });
+
+  // ---------- constants ----------
+  var ID_COL = "ID эталонного товара";
+  var NAME_COL = "Название товара";
+
+  var CRITERIA = [
+    { key: "dwh_name", sheet: "Дублі — Назва товару DWH", short: "Назва товару DWH", matchCol: "Название товара DWH", matchLabel: "Назва товару DWH", kind: "name" },
+    { key: "barcode", sheet: "Дублі — Штрих-коди", short: "Штрих-код", matchCol: "Штрих-код", matchLabel: "Штрих-код", kind: "multi" },
+    { key: "morion", sheet: "Дублі — Коди Морион", short: "Коди Морион", matchCol: "Коды Морион", matchLabel: "Коди Морион", kind: "multi" },
+    { key: "optima", sheet: "Дублі — Коди Оптима", short: "Коди Оптима", matchCol: "Коды Оптима", matchLabel: "Коди Оптима", kind: "multi" },
+    { key: "badm", sheet: "Дублі — Коди БАДМ", short: "Коди БАДМ", matchCol: "Коды БАДМ", matchLabel: "Коди БАДМ", kind: "multi" }
+  ];
+
+  // ---------- dom refs ----------
+  var dropzone = document.getElementById("dropzone");
+  var fileInput = document.getElementById("fileInput");
+  var filebar = document.getElementById("filebar");
+  var fname = document.getElementById("fname");
+  var btnReset = document.getElementById("btnReset");
+  var statusEl = document.getElementById("status");
+  var statusText = document.getElementById("statusText");
+  var warnBanner = document.getElementById("warnBanner");
+  var errorBanner = document.getElementById("errorBanner");
+  var resultsCard = document.getElementById("resultsCard");
+  var statsGrid = document.getElementById("statsGrid");
+  var btnDownload = document.getElementById("btnDownload");
+  var filenameHint = document.getElementById("filenameHint");
+
+  var outputBlobUrl = null;
+  var outputFilename = "";
+
+  function resetUI() {
+    filebar.style.display = "none";
+    statusEl.style.display = "none";
+    warnBanner.style.display = "none";
+    errorBanner.style.display = "none";
+    resultsCard.style.display = "none";
+    fileInput.value = "";
+    if (outputBlobUrl) { URL.revokeObjectURL(outputBlobUrl); outputBlobUrl = null; }
+  }
+
+  btnReset.addEventListener("click", resetUI);
+
+  dropzone.addEventListener("click", function () { fileInput.click(); });
+  dropzone.addEventListener("dragover", function (e) {
+    e.preventDefault();
+    dropzone.classList.add("drag");
+  });
+  dropzone.addEventListener("dragleave", function () {
+    dropzone.classList.remove("drag");
+  });
+  dropzone.addEventListener("drop", function (e) {
+    e.preventDefault();
+    dropzone.classList.remove("drag");
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files.length) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = "block";
+  }
+
+  function handleFile(file) {
+    resetUI();
+    fname.textContent = file.name;
+    filebar.style.display = "flex";
+
+    if (!/\.xlsx$/i.test(file.name)) {
+      showError("Потрібен файл формату .xlsx. Якщо у вас .xls або .csv — збережіть файл як xlsx і спробуйте ще раз.");
+      return;
+    }
+
+    statusText.textContent = "Читання файлу…";
+    statusEl.style.display = "flex";
+
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      processWorkbook(e.target.result, file.name).catch(function (err) {
+        console.error(err);
+        statusEl.style.display = "none";
+        showError("Не вдалося обробити файл: " + (err && err.message ? err.message : err));
+      });
+    };
+    reader.onerror = function () {
+      statusEl.style.display = "none";
+      showError("Не вдалося прочитати файл.");
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ---------- duplicate logic ----------
+  function DSU(n) {
+    this.p = new Array(n);
+    for (var i = 0; i < n; i++) this.p[i] = i;
+  }
+  DSU.prototype.find = function (x) {
+    while (this.p[x] !== x) { this.p[x] = this.p[this.p[x]]; x = this.p[x]; }
+    return x;
+  };
+  DSU.prototype.union = function (a, b) {
+    var ra = this.find(a), rb = this.find(b);
+    if (ra !== rb) this.p[ra] = rb;
+  };
+
+  function normalizeName(s) {
+    if (s === null || s === undefined) return null;
+    var t = String(s).trim().replace(/\s+/g, " ");
+    return t ? t.toLowerCase() : null;
+  }
+
+  function cellStr(v) {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object") {
+      if (v.text !== undefined) return String(v.text);
+      if (v.richText) return v.richText.map(function (rt) { return rt.text; }).join("");
+      if (v.result !== undefined) return String(v.result);
+    }
+    return String(v);
+  }
+
+  function computeGroups(rows, crit) {
+    var n = rows.length;
+    var groups;
+    if (crit.kind === "name") {
+      var map = new Map();
+      rows.forEach(function (r, i) {
+        var v = normalizeName(r[crit.matchCol]);
+        if (!v) return;
+        if (!map.has(v)) map.set(v, []);
+        map.get(v).push(i);
+      });
+      groups = [];
+      map.forEach(function (g) { if (g.length > 1) groups.push(g); });
+    } else {
+      var dsu = new DSU(n);
+      var codeMap = new Map();
+      rows.forEach(function (r, i) {
+        var raw = r[crit.matchCol];
+        if (!raw) return;
+        var codes = String(raw).split(",").map(function (c) { return c.trim(); }).filter(Boolean);
+        codes.forEach(function (c) {
+          if (!codeMap.has(c)) codeMap.set(c, []);
+          codeMap.get(c).push(i);
+        });
+      });
+      codeMap.forEach(function (idxs) {
+        for (var j = 1; j < idxs.length; j++) dsu.union(idxs[0], idxs[j]);
+      });
+      var involved = [];
+      rows.forEach(function (r, i) { if (r[crit.matchCol]) involved.push(i); });
+      var byRoot = new Map();
+      involved.forEach(function (i) {
+        var root = dsu.find(i);
+        if (!byRoot.has(root)) byRoot.set(root, []);
+        byRoot.get(root).push(i);
+      });
+      groups = [];
+      byRoot.forEach(function (g) { if (g.length > 1) groups.push(g); });
+    }
+    groups.sort(function (a, b) { return Math.min.apply(null, a) - Math.min.apply(null, b); });
+    return groups;
+  }
+
+  // ---------- excel styling helpers ----------
+  var HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3355EE" } };
+  var GROUP_FILL_A = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F3FA" } };
+
+  function styleHeaderRow(row) {
+    row.eachCell(function (cell) {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = HEADER_FILL;
+      cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    });
+    row.height = 22;
+  }
+
+  function autoWidth(ws, colCount, rowsData) {
+    for (var c = 1; c <= colCount; c++) {
+      var maxLen = 10;
+      rowsData.forEach(function (r) {
+        var val = r[c - 1];
+        if (val !== null && val !== undefined) {
+          var len = String(val).length;
+          if (len > maxLen) maxLen = len;
+        }
+      });
+      ws.getColumn(c).width = Math.min(Math.max(maxLen + 2, 12), 42);
+    }
+  }
+
+  function todayStr() {
+    var d = new Date();
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var dd = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + mm + "-" + dd;
+  }
+
+  function sheetNameSafe(name) {
+    return name.length > 31 ? name.slice(0, 31) : name;
+  }
+
+  var ADH_LINK_BASE = "https://apis-data.com/products/product/";
+
+  function adhLink(id) {
+    var idStr = String(id === null || id === undefined ? "" : id).trim();
+    if (!idStr) return null;
+    return ADH_LINK_BASE + encodeURIComponent(idStr);
+  }
+
+  async function processWorkbook(arrayBuffer, originalName) {
+    statusText.textContent = "Розбір таблиці…";
+
+    var inWb = new ExcelJS.Workbook();
+    await inWb.xlsx.load(arrayBuffer);
+    var ws = inWb.worksheets[0];
+    if (!ws) throw new Error("У файлі не знайдено жодного листа.");
+
+    var headerRow = ws.getRow(1);
+    var headers = [];
+    headerRow.eachCell({ includeEmpty: true }, function (cell, colNumber) {
+      headers[colNumber] = cellStr(cell.value).trim();
+    });
+    var colIndex = {};
+    headers.forEach(function (h, i) { if (h) colIndex[h] = i; });
+
+    if (!(ID_COL in colIndex) || !(NAME_COL in colIndex)) {
+      throw new Error("У файлі відсутня колонка «" + ID_COL + "» або «" + NAME_COL + "» — без них звіт сформувати неможливо.");
+    }
+
+    var rows = [];
+    ws.eachRow(function (row, rowNumber) {
+      if (rowNumber === 1) return;
+      var obj = {};
+      headers.forEach(function (h, i) {
+        if (!h) return;
+        obj[h] = cellStr(row.getCell(i).value);
+      });
+      rows.push(obj);
+    });
+
+    if (rows.length === 0) throw new Error("У файлі немає рядків з даними.");
+
+    statusText.textContent = "Пошук дублів…";
+    await nextFrame();
+
+    var missing = [];
+    var results = [];
+    CRITERIA.forEach(function (crit) {
+      if (!(crit.matchCol in colIndex)) {
+        missing.push(crit.matchCol);
+        results.push({ crit: crit, skipped: true });
+        return;
+      }
+      var groups = computeGroups(rows, crit);
+      var rowCount = groups.reduce(function (s, g) { return s + g.length; }, 0);
+      results.push({ crit: crit, skipped: false, groups: groups, rowCount: rowCount });
+    });
+
+    statusText.textContent = "Формування звіту…";
+    await nextFrame();
+
+    var outWb = new ExcelJS.Workbook();
+    var sumWs = outWb.addWorksheet("Зведення");
+    sumWs.addRow(["Критерій", "Колонка порівняння", "Кількість груп", "Кількість рядків-дублів"]);
+    styleHeaderRow(sumWs.getRow(1));
+    results.forEach(function (r) {
+      if (r.skipped) {
+        sumWs.addRow([r.crit.short, r.crit.matchCol + " (відсутня у файлі)", "—", "—"]);
+      } else {
+        sumWs.addRow([r.crit.short, r.crit.matchCol, r.groups.length, r.rowCount]);
+      }
+    });
+    sumWs.addRow([]);
+    sumWs.addRow(["Дата формування звіту", todayStr()]);
+    sumWs.addRow(["Вихідний файл", originalName]);
+    sumWs.addRow(["Усього товарів у файлі", rows.length]);
+    autoWidth(sumWs, 4, [["Критерій", "Колонка порівняння", "Кількість груп", "Кількість рядків-дублів"]].concat(
+      results.map(function (r) { return [r.crit.short, r.crit.matchCol, "", ""]; })
+    ));
+    sumWs.views = [{ state: "frozen", ySplit: 1 }];
+
+    results.forEach(function (r) {
+      if (r.skipped) return;
+      var crit = r.crit;
+      var sheet = outWb.addWorksheet(sheetNameSafe(crit.sheet));
+      var headerLabels = ["№ групи дубля", "ID еталонного товару", "Назва товару", crit.matchLabel, "Посилання в ADH"];
+      sheet.addRow(headerLabels);
+      styleHeaderRow(sheet.getRow(1));
+
+      var dataForWidth = [headerLabels];
+      var rIdx = 2;
+      r.groups.forEach(function (group, gi) {
+        var groupNum = gi + 1;
+        var fillEven = groupNum % 2 === 0;
+        group.forEach(function (rowI) {
+          var rec = rows[rowI];
+          var link = adhLink(rec[ID_COL]);
+          var linkCellValue = link ? { text: link, hyperlink: link } : "";
+          var rowVals = [groupNum, rec[ID_COL], rec[NAME_COL], rec[crit.matchCol], linkCellValue];
+          var excelRow = sheet.addRow(rowVals);
+          if (link) {
+            excelRow.getCell(5).font = { color: { argb: "FF3355EE" }, underline: true };
+          }
+          if (fillEven) {
+            excelRow.eachCell({ includeEmpty: true }, function (cell) { cell.fill = GROUP_FILL_A; });
+          }
+          dataForWidth.push([groupNum, rec[ID_COL], rec[NAME_COL], rec[crit.matchCol], link || ""]);
+          rIdx++;
+        });
+      });
+
+      autoWidth(sheet, 5, dataForWidth);
+      sheet.views = [{ state: "frozen", ySplit: 1 }];
+      sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 5 } };
+    });
+
+    statusText.textContent = "Готово";
+    await nextFrame();
+
+    var buffer = await outWb.xlsx.writeBuffer();
+    var blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    if (outputBlobUrl) URL.revokeObjectURL(outputBlobUrl);
+    outputBlobUrl = URL.createObjectURL(blob);
+    outputFilename = "duplicates_report_" + todayStr() + ".xlsx";
+
+    statusEl.style.display = "none";
+
+    if (missing.length) {
+      warnBanner.textContent = "Увага: у файлі не знайдено колонок — " + missing.join(", ") + ". Відповідні критерії пропущено, решта прорахована.";
+      warnBanner.style.display = "block";
+    }
+
+    renderStats(results, rows.length);
+  }
+
+  function nextFrame() {
+    return new Promise(function (resolve) { setTimeout(resolve, 0); });
+  }
+
+  function renderStats(results, totalRows) {
+    statsGrid.innerHTML = "";
+    results.forEach(function (r) {
+      var div = document.createElement("div");
+      if (r.skipped) {
+        div.className = "stat skipped";
+        div.innerHTML =
+          '<div class="label">' + r.crit.short + '</div>' +
+          '<div class="value">колонки немає</div>' +
+          '<div class="sub">критерій пропущено</div>';
+      } else {
+        div.className = "stat";
+        div.innerHTML =
+          '<div class="label">' + r.crit.short + '</div>' +
+          '<div class="value">' + r.groups.length + ' груп</div>' +
+          '<div class="sub">' + r.rowCount + ' рядків-дублів</div>';
+      }
+      statsGrid.appendChild(div);
+    });
+    filenameHint.textContent = "Файл: " + outputFilename + " · усього товарів у файлі: " + totalRows;
+    resultsCard.style.display = "block";
+  }
+
+  btnDownload.addEventListener("click", function () {
+    if (!outputBlobUrl) return;
+    var a = document.createElement("a");
+    a.href = outputBlobUrl;
+    a.download = outputFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+})();
+</script>
+</body>
+</html>
